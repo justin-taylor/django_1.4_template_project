@@ -1,122 +1,87 @@
+from __future__ import with_statement
+from fabric.api import run, sudo, env, local, require, cd
+
 # globals
 
 
 '''
-add pip install -r requirements
 setup to use gunicorn and nginx
+supervisorctl restart example
 '''
 
-config.project_name = 'test_app'
+env.project_name = 'example'
 
 # environments
 
-def local():
-    "Use the local virtual server"
-    config.hosts = ['172.16.142.130']
-    config.path = '/srv/test_app'
-    config.user = 'justin'
-    config.virtualhost_path = "/"
+def production():
+    env.hosts = ['107.20.88.55']
+    env.path = '/srv/example.com'
+    env.user = 'root'
+    env.git_repo = 'git://github.com/justin-taylor/test_app.git'
+    import time
+    env.release = time.strftime('%Y%m%d%H%M%S')
 
 # tasks
-
 def test():
     "Run the test suite and bail out if it fails"
     local("cd $(project_name); python manage.py test", fail="abort")
 
-def setup():
-    """
-    Setup a fresh virtualenv as well as a few useful directories, then run
-    a full deployment
-    """
-    require('hosts', provided_by=[local])
-    require('path')
-    
-    sudo('aptitude install -y python-setuptools')
-    sudo('easy_install pip')
-    sudo('pip install virtualenv')
-    sudo('aptitude install -y apache2')
-    sudo('aptitude install -y libapache2-mod-wsgi')
-    # we want rid of the defult apache config
-    sudo('cd /etc/apache2/sites-available/; a2dissite default;')
-    run('mkdir -p $(path); cd $(path); virtualenv .;')
-    run('cd $(path); mkdir releases; mkdir shared; mkdir packages;', fail='ignore')
-    deploy()
-
 def deploy():
     """
     Deploy the latest version of the site to the servers, install any
-    required third party modules, install the virtual host and 
+    required third party modules, 
     then restart the webserver
     """
-    require('hosts', provided_by=[local])
-    require('path')
-
-    import time
-    config.release = time.strftime('%Y%m%d%H%M%S')
-
-    upload_tar_from_git()
+    clone_release()
     install_requirements()
-    install_site()
     symlink_current_release()
     migrate()
     restart_webserver()
 
+#TODO
 def deploy_version(version):
-    "Specify a specific version to be made live"
-    require('hosts', provided_by=[local])
-    require('path')
-    
-    config.version = version
-    run('cd $(path); rm releases/previous; mv releases/current releases/previous;')
-    run('cd $(path); ln -s $(version) releases/current')
-    restart_webserver()
+    pass
 
+#TODO
 def rollback():
-    """
-    Limited rollback capability. Simple loads the previously current
-    version of the code. Rolling back again will swap between the two.
-    """
-    require('hosts', provided_by=[local])
-    require('path')
+    pass
 
-    run('cd $(path); mv releases/current releases/_previous;')
-    run('cd $(path); mv releases/previous releases/current;')
-    run('cd $(path); mv releases/_previous releases/previous;')
-    restart_webserver()
-    
+
 # Helpers. These are called by other functions rather than directly
 
-def upload_tar_from_git():
-    require('release', provided_by=[deploy, setup])
-    "Create an archive from the current Git master branch and upload it"
-    local('git archive --format=tar master | gzip > $(release).tar.gz')
-    run('mkdir $(path)/releases/$(release)')
-    put('$(release).tar.gz', '$(path)/packages/')
-    run('cd $(path)/releases/$(release) && tar zxf ../../packages/$(release).tar.gz')
-    local('rm $(release).tar.gz')
+def clone_release():
+    require('path', provided_by=[production])
+    require('release', provided_by=[deploy])
+    require('git_repo', provided_by=[production])
 
-def install_site():
-    "Add the virtualhost file to apache"
-    require('release', provided_by=[deploy, setup])
-    sudo('cd $(path)/releases/$(release); cp $(project_name)$(virtualhost_path)$(project_name) /etc/apache2/sites-available/')
-    sudo('cd /etc/apache2/sites-available/; a2ensite $(project_name)') 
+    with cd("%s/releases/" % env.path):
+        sudo("git clone %s %s" % (env.git_repo, env.release))
 
 def install_requirements():
     "Install the required packages from the requirements file using pip"
-    require('release', provided_by=[deploy, setup])
-    run('cd $(path); pip install -E . -r ./releases/$(release)/requirements.txt')
+    require('path', provided_by=[production])
+    require('release', provided_by=[deploy])
+
+    with cd("%s" % (env.path)):
+        sudo("pip install -r ./releases/%s/requirements.txt" % (env.release))
 
 def symlink_current_release():
     "Symlink our current release"
-    require('release', provided_by=[deploy, setup])
-    run('cd $(path); rm releases/previous; mv releases/current releases/previous;', fail='ignore')
-    run('cd $(path); ln -s $(release) releases/current')
+    require('path', provided_by=[production])
+    require('release', provided_by=[deploy])
+
+    with cd("%s;" % (env.path)):
+        sudo("ln -sfn %s releases/current" % (env.release))
 
 def migrate():
-    "Update the database"
+    "Migrating the Database with South"
     require('project_name')
-    run('cd $(path)/releases/current/$(project_name);  ../../../bin/python manage.py syncdb --noinput')
+    require('path', provided_by=[production])
+
+    with cd("%s/releases/current/;" % (env.path)):
+        sudo("./manage.py migrate")
 
 def restart_webserver():
     "Restart the web server"
-    sudo('/etc/init.d/apache2 restart')
+    require('project_name')
+    sudo('supervisorctl restart %s' % (env.project_name))
