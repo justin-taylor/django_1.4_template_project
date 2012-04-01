@@ -39,6 +39,13 @@ def deploy():
     restart_webserver()
 
 #TODO
+def setup():
+    """
+    runs the initial setup of the django project, things like syncdb
+    """
+    pass
+
+#TODO
 def deploy_version(version):
     pass
 
@@ -55,7 +62,7 @@ def clone_release():
     require('git_repo', provided_by=[production])
 
     with cd("%s/releases/" % env.path):
-        sudo("git clone %s %s" % (env.git_repo, env.release))
+        run("git clone %s %s" % (env.git_repo, env.release))
 
 def install_requirements():
     "Install the required packages from the requirements file using pip"
@@ -63,25 +70,25 @@ def install_requirements():
     require('release', provided_by=[deploy])
 
     with cd("%s" % (env.path)):
-        sudo("pip install -r ./releases/%s/requirements.txt" % (env.release))
+        run("pip install -r ./releases/%s/requirements.txt" % (env.release))
 
 def symlink_current_release():
     "Symlink our current release"
     require('path', provided_by=[production])
     require('release', provided_by=[deploy])
 
-    with cd("%s;" % (env.path)):
-        sudo("ln -sfn %s releases/current" % (env.release))
+    with cd("%s" % (env.path)):
+        run("ln -sfn releases/%s current" % (env.release))
 
 def migrate():
     "Migrating the Database with South"
     require('project_name')
     require('path', provided_by=[production])
 
-    with cd("%s/releases/current/;" % (env.path)):
-        sudo("./manage.py migrate")
+    with cd("%s/current/" % (env.path)):
+        run("python manage.py migrate")
 
 def restart_webserver():
     "Restart the web server"
     require('project_name')
-    sudo('supervisorctl restart %s' % (env.project_name))
+    run('supervisorctl restart %s' % (env.project_name))
