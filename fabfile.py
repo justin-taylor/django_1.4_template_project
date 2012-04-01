@@ -1,17 +1,16 @@
 from __future__ import with_statement
 from fabric.api import run, env, local, cd
 
-# globals
-
-
-'''
-setup to use gunicorn and nginx
-supervisorctl restart example
-'''
-
 env.project_name = 'example'
 
-# environments
+# the number of releases to keep in the release folder
+# before deleting old releases
+# set to a negative number or zero to turn this feature off
+env.release_count = 5
+
+#-------------------------------------------------------------------------------
+#    ENVIRONMENTS
+#-------------------------------------------------------------------------------
 
 def production():
     env.hosts = ['107.20.88.55']
@@ -23,7 +22,10 @@ def production():
     import time
     env.release = time.strftime('%Y%m%d%H%M%S')
 
-# tasks
+#-------------------------------------------------------------------------------
+#   TASKS
+#-------------------------------------------------------------------------------
+
 def test():
     "Run the test suite and bail out if it fails"
     local("cd $(project_name); python manage.py test", fail="abort")
@@ -40,6 +42,7 @@ def deploy():
     symlink_current_release(env.release)
     migrate()
     restart_webserver()
+    clean_old_releases()
 
 #TODO
 def setup():
@@ -48,18 +51,40 @@ def setup():
     """
     pass
 
-#TODO
 def deploy_release(release):
+    """
+    @param [String] the name of the folder to set as the current source
+                    should be in the form of a timestamp YYYYMMDDHHMMSS
+    """
     symlink_current_release(release)
     migrate()
     restart_webserver()
 
-#TODO
-def rollback():
-    pass
+
+def rollback(delete = True):
+    """
+    @param [Tuple]
+
+    Rolls back the application to the previous release
+    and deletes the release that was last deployed
+
+    If 'no_delete' is passed as an arg the last release deployed is not deleted
+    for example: fab production rollback:no_delete
+    """
+
+    with cd("%s/releases/" % env.path):
+        folders = run("ls -A | tail -2")
+        folders = folders.split('\r\n')
+        symlink_current_release(folders[0])
+        restart_webserver()
+
+        if delete == 'no_delete':
+            run("rm -r %s" % folders[1])
 
 
-# Helpers. These are called by other functions rather than directly
+#-------------------------------------------------------------------------------
+# HELPER METHODS
+#-------------------------------------------------------------------------------
 
 def clone_release():
     with cd("%s/releases/" % env.path):
@@ -82,6 +107,17 @@ def migrate():
 
     with cd("%s/current/" % (env.path)):
         run("python manage.py migrate")
+
+def clean_old_releases():
+    if env.release <= 0:
+        return
+
+    with cd("%s/releases/" % (env.path)):
+        folders = run("ls -A")
+        folders = folders.split('\t')
+        if len(folders) > env.release_count:
+            count = len(folders) - env.release_count
+            [run("rm -rf %s" % x) for x in folders[:count]]
 
 def restart_webserver():
     "Restart the web server"
