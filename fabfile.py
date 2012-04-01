@@ -1,5 +1,5 @@
 from __future__ import with_statement
-from fabric.api import run, sudo, env, local, require, cd
+from fabric.api import run, env, local, cd
 
 # globals
 
@@ -18,6 +18,8 @@ def production():
     env.path = '/srv/example.com'
     env.user = 'root'
     env.git_repo = 'git://github.com/justin-taylor/test_app.git'
+    env.git_branch = 'master'
+
     import time
     env.release = time.strftime('%Y%m%d%H%M%S')
 
@@ -32,9 +34,10 @@ def deploy():
     required third party modules, 
     then restart the webserver
     """
+
     clone_release()
     install_requirements()
-    symlink_current_release()
+    symlink_current_release(env.release)
     migrate()
     restart_webserver()
 
@@ -46,8 +49,10 @@ def setup():
     pass
 
 #TODO
-def deploy_version(version):
-    pass
+def deploy_release(release):
+    symlink_current_release(release)
+    migrate()
+    restart_webserver()
 
 #TODO
 def rollback():
@@ -57,38 +62,27 @@ def rollback():
 # Helpers. These are called by other functions rather than directly
 
 def clone_release():
-    require('path', provided_by=[production])
-    require('release', provided_by=[deploy])
-    require('git_repo', provided_by=[production])
-
     with cd("%s/releases/" % env.path):
-        run("git clone %s %s" % (env.git_repo, env.release))
+        run("git clone -b %s %s %s" % (env.git_branch, env.git_repo, env.release))
 
 def install_requirements():
     "Install the required packages from the requirements file using pip"
-    require('path', provided_by=[production])
-    require('release', provided_by=[deploy])
 
     with cd("%s" % (env.path)):
         run("pip install -r ./releases/%s/requirements.txt" % (env.release))
 
-def symlink_current_release():
+def symlink_current_release(release):
     "Symlink our current release"
-    require('path', provided_by=[production])
-    require('release', provided_by=[deploy])
 
     with cd("%s" % (env.path)):
-        run("ln -sfn releases/%s current" % (env.release))
+        run("ln -sfn releases/%s current" % release)
 
 def migrate():
     "Migrating the Database with South"
-    require('project_name')
-    require('path', provided_by=[production])
 
     with cd("%s/current/" % (env.path)):
         run("python manage.py migrate")
 
 def restart_webserver():
     "Restart the web server"
-    require('project_name')
     run('supervisorctl restart %s' % (env.project_name))
