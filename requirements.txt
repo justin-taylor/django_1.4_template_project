@@ -1,3 +1,1 @@
-MySQL-python
-python-django==1.4
-pil
+Django==1.4

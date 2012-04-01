@@ -1,5 +1,11 @@
 # globals
 
+
+'''
+add pip install -r requirements
+setup to use gunicorn and nginx
+'''
+
 config.project_name = 'test_app'
 
 # environments
