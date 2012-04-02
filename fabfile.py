@@ -85,7 +85,9 @@ def rollback(delete = True):
     with cd("%s/releases/" % env.path):
         folders = run("ls -A | tail -2")
         folders = folders.split('\r\n')
+
         symlink_current_release(folders[0])
+        install_requirements(folders[0])
         restart_webserver()
 
         if delete == 'no_delete':
