@@ -1,0 +1,3 @@
+This app is a sandbox for setting up and testing deployment to an server running supervisor.
+
+Only the fabfile is regularly updated
