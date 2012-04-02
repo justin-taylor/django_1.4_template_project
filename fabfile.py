@@ -39,14 +39,30 @@ def deploy():
     
     try:
         clone_release()
-        install_requirements()
-        symlink_current_release(env.release)
+
+    except:
+        'Deleting cloned release'
+        with cd("%s/releases/" % env.path):
+            run("rm -rf" %  env.release)
+    else: 
+        deploy_release(env.release)
+
+def deploy_release(release):
+    """
+    @param [String] the name of the folder to set as the current source
+                    should be in the form of a timestamp YYYYMMDDHHMMSS
+    """
+    try:
+        symlink_current_release(release)
+        install_requirements(release)
         migrate()
         restart_webserver()
-        clean_old_releases()
 
     except:
         rollback()
+
+    finally:
+        clean_old_releases()
 
 #TODO
 def setup():
@@ -54,16 +70,6 @@ def setup():
     runs the initial setup of the django project, things like syncdb
     """
     pass
-
-def deploy_release(release):
-    """
-    @param [String] the name of the folder to set as the current source
-                    should be in the form of a timestamp YYYYMMDDHHMMSS
-    """
-    symlink_current_release(release)
-    migrate()
-    restart_webserver()
-
 
 def rollback(delete = True):
     """
@@ -94,11 +100,11 @@ def clone_release():
     with cd("%s/releases/" % env.path):
         run("git clone -b %s %s %s" % (env.git_branch, env.git_repo, env.release))
 
-def install_requirements():
+def install_requirements(release):
     "Install the required packages from the requirements file using pip"
 
     with cd("%s" % (env.path)):
-        run("pip install -r ./releases/%s/requirements.txt" % (env.release))
+        run("pip install -r ./releases/%s/requirements.txt" % release)
 
 def symlink_current_release(release):
     "Symlink our current release"
@@ -113,7 +119,7 @@ def migrate():
         run("python manage.py migrate")
 
 def clean_old_releases():
-    if env.release <= 0:
+    if env.release_count <= 0:
         return
 
     with cd("%s/releases/" % (env.path)):
