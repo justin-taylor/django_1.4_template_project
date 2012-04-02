@@ -71,7 +71,7 @@ def setup():
     """
     pass
 
-def rollback(delete = True):
+def rollback(delete = 'delete'):
     """
     @param [Tuple]
 
@@ -86,11 +86,15 @@ def rollback(delete = True):
         folders = run("ls -A | tail -2")
         folders = folders.split('\r\n')
 
+        if folders.count < 2:
+            print "There is no available release to rollback to"
+            return
+
         symlink_current_release(folders[0])
         install_requirements(folders[0])
         restart_webserver()
 
-        if delete == 'no_delete':
+        if delete != 'no_delete':
             run("rm -r %s" % folders[1])
 
 
