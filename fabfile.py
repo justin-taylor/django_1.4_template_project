@@ -36,13 +36,17 @@ def deploy():
     required third party modules, 
     then restart the webserver
     """
+    
+    try:
+        clone_release()
+        install_requirements()
+        symlink_current_release(env.release)
+        migrate()
+        restart_webserver()
+        clean_old_releases()
 
-    clone_release()
-    install_requirements()
-    symlink_current_release(env.release)
-    migrate()
-    restart_webserver()
-    clean_old_releases()
+    except:
+        rollback()
 
 #TODO
 def setup():
