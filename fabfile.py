@@ -97,10 +97,8 @@ def rollback(delete = 'delete'):
         restart_webserver()
 
         if delete != 'no_delete':
-            print 'Deleting last release'
             run("rm -r %s" % folders[1])
-        else:
-            print 'should have deleted'
+
 
 #-------------------------------------------------------------------------------
 # HELPER METHODS
