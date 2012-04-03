@@ -14,7 +14,7 @@ env.release_count = 5
 
 def production():
     env.hosts = ['107.20.88.55']
-    env.path = '/srv/example.com'
+    env.path = '/srv/example.com/application'
     env.user = 'root'
     env.git_repo = 'git://github.com/justin-taylor/test_app.git'
     env.git_branch = 'master'
@@ -110,13 +110,14 @@ def install_requirements(release):
     "Install the required packages from the requirements file using pip"
 
     with cd("%s" % (env.path)):
+        run("source ./bin/active")
         run("pip install -r ./releases/%s/requirements.txt" % release)
 
 def symlink_current_release(release):
     "Symlink our current release"
 
     with cd("%s" % (env.path)):
-        run("ln -sfn releases/%s current" % release)
+        run("ln -sfn ./releases/%s current" % release)
 
 def migrate():
     "Migrating the Database with South"
