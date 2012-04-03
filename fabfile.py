@@ -82,6 +82,8 @@ def rollback(delete = 'delete'):
     for example: fab production rollback:no_delete
     """
 
+    print "Rolling Back"
+
     with cd("%s/releases/" % env.path):
         folders = run("ls -A | tail -2")
         folders = folders.split('\r\n')
@@ -95,8 +97,10 @@ def rollback(delete = 'delete'):
         restart_webserver()
 
         if delete != 'no_delete':
+            print 'Deleting last release'
             run("rm -r %s" % folders[1])
-
+        else:
+            print 'should have deleted'
 
 #-------------------------------------------------------------------------------
 # HELPER METHODS
@@ -110,8 +114,7 @@ def install_requirements(release):
     "Install the required packages from the requirements file using pip"
 
     with cd("%s" % (env.path)):
-        run("source ./bin/active")
-        run("pip install -r ./releases/%s/requirements.txt" % release)
+        run("pip install -E . -r ./releases/%s/requirements.txt" % release)
 
 def symlink_current_release(release):
     "Symlink our current release"
