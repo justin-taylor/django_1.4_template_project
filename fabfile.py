@@ -138,5 +138,12 @@ def clean_old_releases():
             [run("rm -rf %s" % x) for x in folders[:count]]
 
 def restart_webserver():
-    "Restart the web server"
-    run('supervisorctl restart %s' % (env.project_name))
+    "Restart Master gunicorn process"
+    
+    print "Attempting graceful restart"
+    pid = run('cat %s/gunicorn.pid' % env.path)
+    if pid != '':
+        run('kill -HUP %s' %  pid)
+
+    else:
+        run('supervisorctl restart %s' % env.project_name)
