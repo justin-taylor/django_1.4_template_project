@@ -113,26 +113,26 @@ def clone_release():
 def install_requirements(release):
     "Install the required packages from the requirements file using pip"
 
-    with cd("%s" % (env.path)):
+    with cd("%s" % env.path):
         run("pip install -E . -r ./releases/%s/requirements.txt" % release)
 
 def symlink_current_release(release):
     "Symlink our current release"
 
-    with cd("%s" % (env.path)):
+    with cd("%s" % env.path):
         run("ln -sfn ./releases/%s current" % release)
 
 def migrate():
     "Migrating the Database with South"
 
-    with cd("%s/current/" % (env.path)):
-        run("python manage.py migrate")
+    with cd("%s/current/" % env.path):
+        run("%s/bin/python manage.py migrate" % env.path)
 
 def clean_old_releases():
     if env.release_count <= 0:
         return
 
-    with cd("%s/releases/" % (env.path)):
+    with cd("%s/releases/" % env.path):
         folders = run("ls -A")
         folders = folders.split('\t')
         if len(folders) > env.release_count:
