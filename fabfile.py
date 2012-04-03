@@ -1,5 +1,6 @@
 from __future__ import with_statement
 from fabric.api import run, env, local, cd
+from fabric.context_managers import settings
 
 env.project_name = 'example'
 
@@ -139,11 +140,12 @@ def clean_old_releases():
 
 def restart_webserver():
     "Restart Master gunicorn process"
-    
-    print "Attempting graceful restart"
-    pid = run('cat %s/gunicorn.pid' % env.path)
-    if pid != '':
-        run('kill -HUP %s' %  pid)
+    with settings(warn_only=True):  
+        #attempt graceful restart
+        pid = run('cat %s/../gunicorn.pid' % env.path)
+        if pid.succeeded:
+            run('kill -HUP %s' %  pid)
 
-    else:
-        run('supervisorctl restart %s' % env.project_name)
+        #could not get pid from file, must use supervisor
+        else:
+            run('supervisorctl restart %s' % env.project_name)
