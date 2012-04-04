@@ -20,6 +20,20 @@ def production():
     env.git_repo = 'git://github.com/justin-taylor/test_app.git'
     env.git_branch = 'master'
 
+    env.apt_get_dependencies = (
+        'git',
+        'mysql-server',
+        'nginx',
+        'supervisor',
+        'python-pip',
+        'build-dep',
+        'python-mysqldb',
+    )
+
+    env.pip_dependencies = (
+        'virtualenv',
+    )
+
     import time
     env.release = time.strftime('%Y%m%d%H%M%S')
 
@@ -65,12 +79,52 @@ def deploy_release(release):
     finally:
         clean_old_releases()
 
+
+#TODO
+def initialize_server():
+    """
+    run the initial setup of the server
+
+    install dependencies, setup the directory structure
+    setup the virtalenv, install the nginx amd supervisor conf files
+    """
+    pass
+
+
+#TODO
+def start():
+    """
+    start nginx, supervisor, and gunicorn
+    only if ther services have not started
+    """
+    pass
+
+
+#TODO
+def stop():
+    """
+    stop nginx, supervisor, and gunicorn
+    """
+    pass
+
+
+#TODO
+def restart():
+    """
+    restart each service
+    note gunicorn will be restarted through supervisor
+    """
+    pass
+
+
 #TODO
 def setup():
     """
-    runs the initial setup of the django project, things like syncdb
+    runs the initial setup of the django project
+    things like syncdb
     """
     pass
+
 
 def rollback(delete = 'delete'):
     """
