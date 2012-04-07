@@ -2,7 +2,7 @@ from __future__ import with_statement
 from fabric.api import run, env, local, cd
 from fabric.context_managers import settings
 
-env.project_name = 'example'
+env.project_name = 'central.tayloredapps.org'
 
 # the number of releases to keep in the release folder
 # before deleting old releases
@@ -15,9 +15,13 @@ env.release_count = 5
 
 def production():
     env.hosts = ['107.20.88.55']
-    env.path = '/srv/example.com/application'
+    env.virtualenv_name = 'application'
+    env.path = '/srv/%s/%s' % (env.project_name, env.virtualenv_name)
     env.user = 'root'
-    env.git_repo = 'git://github.com/justin-taylor/test_app.git'
+
+    env.conf_repo = 'git://github.com/justin-taylor/server_conf.git'
+
+    env.git_repo = 'git://github.com/justin-taylor/central.git'
     env.git_branch = 'master'
 
     env.apt_get_dependencies = (
@@ -121,10 +125,18 @@ def restart():
 def setup():
     """
     runs the initial setup of the django project
-    things like syncdb
     """
-    pass
 
+    run("cd /srv && mkdir %s" % env.project_name)
+    with cd("/srv/%s" % env.project_name):
+        run("virtualenv %s" % env.virtualenv_name)
+        run("mkdir %s/releases" % env.virtualenv_name)
+        run("mkdir logs")
+        run("mkdir logs/nginx")
+        run("mkdir logs/supervisor")
+        run("git clone %s conf" % env.conf_repo)
+
+    clone_release()
 
 def rollback(delete = 'delete'):
     """
