@@ -1,9 +1,8 @@
 # Django settings for test_app project.
 import os
-import sys
-
+from local_settings.py import *
+ 
 PROJECT_ROOT = os.path.dirname(__file__)
-sys.path.insert(0, os.path.join('../'+PROJECT_ROOT, "apps"))
 
 
 DEBUG = True
@@ -15,6 +14,11 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+
+"""
+Copy and paste the database template below
+into local_settings.py
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
@@ -25,6 +29,7 @@ DATABASES = {
         'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
     }
 }
+"""
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
