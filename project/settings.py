@@ -1,12 +1,11 @@
 # Django settings for test_app project.
 import os
 from local_settings.py import *
- 
+
 PROJECT_ROOT = os.path.dirname(__file__)
-
-
-DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+
+sys.path.insert(0, os.path.join(PROJECT_ROOT, "apps"))
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -14,22 +13,6 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
-
-"""
-Copy and paste the database template below
-into local_settings.py
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'test_app',                      # Or path to database file if using sqlite3.
-        'USER': 'root',                      # Not used with sqlite3.
-        'PASSWORD': 'root',                  # Not used with sqlite3.
-        'HOST': 'localhost',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
-    }
-}
-"""
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -66,8 +49,6 @@ MEDIA_ROOT = PROJECT_ROOT+'/media'
 # Examples: "http://media.lawrence.com/media/", "http://example.com/media/"
 MEDIA_URL = '/media/'
 
-# Location to store cache files
-CACHE_BACKEND = 'file://'+PROJECT_ROOT+'/cache'
 
 # Absolute path to the directory static files should be collected to.
 # Don't put anything in this directory yourself; store your static files
