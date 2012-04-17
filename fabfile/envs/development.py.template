@@ -1,6 +1,6 @@
 from fabric.api import env
 
-env.hosts = ['107.20.88.55']
+env.hosts = ['100.100.100.100']
 env.virtualenv_name = 'application'
 env.path = '/srv/%s/%s' % (env.project_name, env.virtualenv_name)
 env.user = 'root'
@@ -13,14 +13,13 @@ env.gunicorn_group = 'root'
 
 env.supervisor_user = env.gunicorn_user
 
-env.git_repo = 'git://github.com/justin-taylor/central.git'
+env.git_repo = 'git://github.com/user/project.git'
 env.git_branch = 'master'
 
 env.apt_get_dependencies = (
     'git',
     'mysql-server',
     'nginx',
-    'supervisor',
     'python-pip',
     'build-dep',
     'python-mysqldb',
@@ -29,5 +28,3 @@ env.apt_get_dependencies = (
 env.pip_dependencies = (
     'virtualenv',
 )
-
-
