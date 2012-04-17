@@ -27,9 +27,11 @@ env.release_count = 5
 #    ENVIRONMENTS
 #-------------------------------------------------------------------------------
 
+def development():
+    from envs.development import *
+
 def production():
     from envs.production import *
-    set_to_new_release()
 #-------------------------------------------------------------------------------
 #   TASKS
 #-------------------------------------------------------------------------------
@@ -45,6 +47,8 @@ def deploy():
     then restart the webserver
     """
     
+    set_to_new_release()
+
     try:
         clone_release()
 
@@ -123,7 +127,7 @@ def setup():
         run("virtualenv %s" % env.virtualenv_name)
         run("mkdir %s/releases" % env.virtualenv_name)
 
-    create_shared_directory()
+    setup_shared_directory()
     create_logs_directories()
     clone_release()
     symlink_release(env.release)
@@ -192,7 +196,7 @@ def symlink_release(release):
         run("ln -sfn ./releases/%s current" % release)
 
 
-def create_shared_directory():
+def setup_shared_directory():
     with cd("/srv/%s" % env.project_name):
         run("mkdir shared")
 

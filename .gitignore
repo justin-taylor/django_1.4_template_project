@@ -1,4 +1,4 @@
 *.pyc
 *.sw*
-local_settings.py
+project/local_settings.py
 production.py
