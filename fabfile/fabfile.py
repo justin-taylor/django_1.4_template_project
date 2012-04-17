@@ -28,10 +28,8 @@ env.release_count = 5
 #-------------------------------------------------------------------------------
 
 def production():
-    import envs.production
-    import time
-    env.release = time.strftime('%Y%m%d%H%M%S')
-
+    from envs.production import *
+    set_to_new_release()
 #-------------------------------------------------------------------------------
 #   TASKS
 #-------------------------------------------------------------------------------
@@ -167,6 +165,11 @@ def rollback(delete = 'delete'):
 #-------------------------------------------------------------------------------
 # HELPER METHODS
 #-------------------------------------------------------------------------------
+
+def set_to_new_release():
+    import time
+    env.release = time.strftime('%Y%m%d%H%M%S')
+
 
 def clone_release():
     with cd("%s/releases/" % env.path):
