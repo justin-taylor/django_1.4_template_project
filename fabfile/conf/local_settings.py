@@ -10,4 +10,4 @@ DATABASES = {
 }
 
 DEBUG = True
-CACHE_BACKEND = 'file://{{ env.project_name }}/shared/cache'
+CACHE_BACKEND = 'file:///shared/cache'

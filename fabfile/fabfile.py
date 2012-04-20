@@ -1,22 +1,19 @@
 from __future__ import with_statement
 from fabric.api import run, env, local, cd
 from fabric.context_managers import settings
-from django.template.loaders.filesystem import Loader
+
+import django.template
+import django.template.loader
 
 import os
 
 FAB_DIRECTORY = os.path.dirname(__file__)
 CONF_DIRECTORY = FAB_DIRECTORY+"/conf"
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "project.settings")
 
-"""
-TODO:
-    1) setup local_settings.py in the shared directory and symlink it into current
-    2) add upstart of new supervisor
-"""
+from django.conf import settings as d_settings
+d_settings.configure(TEMPLATE_DIRS=(CONF_DIRECTORY,))
 
-
-env.project_name = 'central.tayloredapps.org'
+env.project_name = 'tmpapp.org'
 
 # the number of releases to keep in the release folder
 # before deleting old releases
@@ -28,10 +25,10 @@ env.release_count = 5
 #-------------------------------------------------------------------------------
 
 def development():
-    from envs.development import *
+    import envs.development
 
 def production():
-    from envs.production import *
+    import envs.production
 #-------------------------------------------------------------------------------
 #   TASKS
 #-------------------------------------------------------------------------------
@@ -129,12 +126,14 @@ def setup():
 
     setup_shared_directory()
     create_logs_directories()
+    set_to_new_release()
     clone_release()
     symlink_release(env.release)
-    install_requirements(env.release)
+    #install_requirements(env.release)
     setup_configuration_files()
     symlink_configuration_files()
     restart_nginx()
+    start_gunicorn()
 
 
 def rollback(delete = 'delete'):
@@ -219,7 +218,7 @@ def clean_old_releases():
 
     with cd("%s/releases/" % env.path):
         folders = run("ls -A")
-        folders = folders.split('\t')
+        folders = folders.split('')
         if len(folders) > env.release_count:
             count = len(folders) - env.release_count
             [run("rm -rf %s" % x) for x in folders[:count]]
@@ -229,40 +228,45 @@ def setup_configuration_files():
     run('mkdir /srv/%s/conf' % env.project_name)
     generate_gunicorn_script()
     generate_nginx_configuration()
-    generate_supervisor_configuration()
     symlink_configuration_files()
 
+def render(name, *values):
+    ctx = django.template.Context()
+    for d in values:
+        ctx.push()
+        ctx.update(d)
+
+    t = django.template.loader.get_template(name)
+    return t.render(ctx)
 
 def generate_gunicorn_script():
-    gunicorn_sh = Loader().load_template('gunicorn.sh',
-                                         template_dirs=[CONF_DIRECTORY])
+    gunicorn_sh = render('gunicorn.sh', dict(env=env))
     for line in gunicorn_sh.split("\n"):
-        run("echo '%s' >> /srv/%s/conf/gunicorn.sh" % (line, env.project_name))
+        run("echo \"%s\" >> /srv/%s/conf/gunicorn.sh" % (line, env.project_name))
 
 
 def generate_nginx_configuration():
-    nginx_conf = Loader().load_template('nginx.conf',
-                                        template_dirs=[CONF_DIRECTORY])
+    nginx_conf = render('nginx.conf', dict(env=env))
     for line in nginx_conf.split("\n"):
-        run('echo %s >> /srv/%s/conf/nginx.conf'% (line, env.project_name))
+        run('echo \"%s\" >> /srv/%s/conf/nginx.conf' % (line, env.project_name))
 
 
 def generate_supervisor_configuration():
-    supervisor_conf = Loader().load_template('supervisor.conf',
-                                             template_dirs=[CONF_DIRECTORY])
+    supervisor_conf = render('supervisor.conf', dict(env=env))
     for line in supervisor_conf.split("\n"):
-        run("echo '%s' >> /srv/%s/conf/supervisor.conf" % (line, env.project_name))
+        run("echo \"%s\" >> /srv/%s/conf/supervisor.conf" % (line, env.project_name))
 
 
 def symlink_configuration_files():
-    run('ln -sfn %s/conf/nginx.conf /etc/nginx/sites-enabled/%s.conf' %
-        (env.path, env.project_name))
-    run('ln -sfn %s/conf/supervisor.conf /etc/supervisor/conf.d/%s.conf' %
-        (env.path, env.project_name))
-
+    run('ln -sfn /srv/%s/conf/nginx.conf /etc/nginx/sites-enabled/%s.conf' %
+        (env.project_name, env.project_name))
 
 def restart_nginx():
     run("service nginx restart")
+
+
+def start_gunicorn():
+    run('/srv/%s/conf/gunicorn.sh &' % env.project_name)
 
 
 def restart_gunicorn():
