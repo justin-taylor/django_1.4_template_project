@@ -217,7 +217,7 @@ def clean_old_releases():
     with cd("%s/releases/" % env.path):
         folders = run("ls -A")
         print folders
-        folders = folders.split('')
+        folders = folders.split('\t')
         if len(folders) > env.release_count:
             count = len(folders) - env.release_count
             [run("rm -rf %s" % x) for x in folders[:count]]
