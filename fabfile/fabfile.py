@@ -1,4 +1,6 @@
 from __future__ import with_statement
+
+from fabric.operations import put
 from fabric.api import run, env, local, cd
 from fabric.context_managers import settings
 
@@ -106,12 +108,8 @@ def stop():
 
 #TODO
 def restart():
-    """
-    restart each service
-    note gunicorn will be restarted through supervisor
-    """
-    pass
-
+    restart_gunicorn
+    restart_nginx
 
 def setup():
     """
@@ -129,7 +127,7 @@ def setup():
     set_to_new_release()
     clone_release()
     symlink_release(env.release)
-    #install_requirements(env.release)
+    install_requirements(env.release)
     setup_configuration_files()
     symlink_configuration_files()
     restart_nginx()
@@ -218,6 +216,7 @@ def clean_old_releases():
 
     with cd("%s/releases/" % env.path):
         folders = run("ls -A")
+        print folders
         folders = folders.split('')
         if len(folders) > env.release_count:
             count = len(folders) - env.release_count
@@ -230,7 +229,7 @@ def setup_configuration_files():
     generate_nginx_configuration()
     symlink_configuration_files()
 
-def render(name, *values):
+def _render(name, *values):
     ctx = django.template.Context()
     for d in values:
         ctx.push()
@@ -239,22 +238,29 @@ def render(name, *values):
     t = django.template.loader.get_template(name)
     return t.render(ctx)
 
+def _write_config_to_server(config, file_name, destination):
+    tmp_file_name = ".%s" % (file_name)
+    with open(tmp_file_name, 'w') as f: 
+        f.write(config)
+    put(tmp_file_name, destination)
+
+    os.remove(tmp_file_name)
+
 def generate_gunicorn_script():
-    gunicorn_sh = render('gunicorn.sh', dict(env=env))
-    for line in gunicorn_sh.split("\n"):
-        run("echo \"%s\" >> /srv/%s/conf/gunicorn.sh" % (line, env.project_name))
+    gunicorn_sh = _render('gunicorn.sh', dict(env=env))
+    dest = "/srv/%s/conf/gunicorn.sh" % (env.project_name)
+    _write_config_to_server(gunicorn_sh, 'gunicorn.sh', dest)
 
 
 def generate_nginx_configuration():
-    nginx_conf = render('nginx.conf', dict(env=env))
-    for line in nginx_conf.split("\n"):
-        run('echo \"%s\" >> /srv/%s/conf/nginx.conf' % (line, env.project_name))
+    nginx_conf = _render('nginx.conf', dict(env=env))
+    dest = "/srv/%s/conf/nginx.conf" % (env.project_name)
+    _write_config_to_server(nginx_conf, 'nginx.conf', dest)
 
 
 def generate_supervisor_configuration():
-    supervisor_conf = render('supervisor.conf', dict(env=env))
-    for line in supervisor_conf.split("\n"):
-        run("echo \"%s\" >> /srv/%s/conf/supervisor.conf" % (line, env.project_name))
+    supervisor_conf = _render('supervisor.conf', dict(env=env))
+    _write_config_to_server(supervisor_conf, 'supervisor.conf')
 
 
 def symlink_configuration_files():
