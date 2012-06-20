@@ -1,6 +1,7 @@
 # Django settings for test_app project.
 import os
-from local_settings.py import *
+import sys
+from local_settings import *
 
 PROJECT_ROOT = os.path.dirname(__file__)
 TEMPLATE_DEBUG = DEBUG
